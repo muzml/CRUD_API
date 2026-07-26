@@ -1,8 +1,8 @@
-from fastapi import FastAPI, status, Request
+from fastapi import FastAPI, status, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-from app.schemas import TaskCreate, TaskResponse
+from app.schemas import TaskCreate, TaskUpdate, TaskResponse
 from app.database import tasks_db, find_task_by_id, get_next_id
 
 # Initialize the FastAPI application instance
@@ -16,7 +16,7 @@ app = FastAPI(
 @app.exception_handler(RequestValidationError)
 def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
-    Custom exception handler to catch missing or invalid payload fields
+    Custom exception handler to catch missing or empty payload fields
     and return HTTP 400 Bad Request instead of default HTTP 422.
     """
     return JSONResponse(
@@ -98,3 +98,54 @@ def create_task(payload: TaskCreate):
     }
     tasks_db.append(new_task)
     return new_task
+
+
+@app.put("/tasks/{id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+def update_task(id: int, payload: TaskUpdate):
+    """
+    Update Task Endpoint (PUT /tasks/{id})
+    
+    - Updates title and/or done status of an existing task.
+    - If task does not exist, returns HTTP 404 with {"error": "Task not found"}.
+    - If no fields are provided in request body, returns HTTP 400 Bad Request.
+    """
+    task = find_task_by_id(id)
+    if not task:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"error": "Task not found"}
+        )
+    
+    if payload.title is None and payload.done is None:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"error": "Invalid input: At least one field (title or done) must be provided"}
+        )
+    
+    if payload.title is not None:
+        task["title"] = payload.title
+    
+    if payload.done is not None:
+        task["done"] = payload.done
+        
+    return task
+
+
+@app.delete("/tasks/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(id: int):
+    """
+    Delete Task Endpoint (DELETE /tasks/{id})
+    
+    - Deletes task matching the specified 'id'.
+    - Returns HTTP 204 No Content with empty response body.
+    - If task does not exist, returns HTTP 404 with {"error": "Task not found"}.
+    """
+    task = find_task_by_id(id)
+    if not task:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"error": "Task not found"}
+        )
+    
+    tasks_db.remove(task)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
