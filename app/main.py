@@ -112,18 +112,25 @@ def create_task(payload: TaskCreate):
     Create Task Endpoint (POST /tasks)
     
     - Accepts JSON body with 'title'.
-    - Auto-generates a unique task ID (1, 2, 3...).
-    - Sets default completion status 'done = False'.
-    - Returns status HTTP 201 Created with the created task payload.
+    - Inserts new task row into SQLite database ('done' defaults to False).
+    - Obtains auto-generated ID using cursor.lastrowid.
+    - Commits transaction and returns HTTP 201 Created with the created task payload.
     """
-    new_id = get_next_id()
-    new_task = {
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO tasks (title, done) VALUES (?, ?);",
+        (payload.title, False)
+    )
+    new_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return {
         "id": new_id,
         "title": payload.title,
         "done": False
     }
-    tasks_db.append(new_task)
-    return new_task
 
 
 @app.put("/tasks/{id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
@@ -135,26 +142,15 @@ def update_task(id: int, payload: TaskUpdate):
     - If task does not exist, returns HTTP 404 with {"error": "Task not found"}.
     - If no fields are provided in request body, returns HTTP 400 Bad Request.
     """
-    task = find_task_by_id(id)
-    if not task:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"error": "Task not found"}
-        )
-    
     if payload.title is None and payload.done is None:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"error": "Invalid input: At least one field (title or done) must be provided"}
         )
-    
-    if payload.title is not None:
-        task["title"] = payload.title
-    
-    if payload.done is not None:
-        task["done"] = payload.done
-        
-    return task
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": "Task not found"}
+    )
 
 
 @app.delete("/tasks/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -166,12 +162,7 @@ def delete_task(id: int):
     - Returns HTTP 204 No Content with empty response body.
     - If task does not exist, returns HTTP 404 with {"error": "Task not found"}.
     """
-    task = find_task_by_id(id)
-    if not task:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"error": "Task not found"}
-        )
-    
-    tasks_db.remove(task)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": "Task not found"}
+    )
