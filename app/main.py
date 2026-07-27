@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from app.schemas import TaskCreate, TaskUpdate, TaskResponse
-from app.database import init_db
+from app.database import init_db, get_db_connection
 
 
 @asynccontextmanager
@@ -69,10 +69,17 @@ def get_all_tasks():
     """
     Get All Tasks Endpoint (GET /tasks)
     
-    Returns a list of all tasks stored in memory.
+    Fetches and returns a list of all tasks from SQLite database.
     If no tasks exist, returns an empty list [].
     """
-    return tasks_db
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks;")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    tasks = [dict(row) for row in rows]
+    return tasks
 
 
 @app.get("/tasks/{id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
@@ -81,16 +88,22 @@ def get_single_task(id: int):
     Get Single Task Endpoint (GET /tasks/{id})
     
     - Accepts 'id' as a path parameter (integer).
-    - Returns the task matching the specified 'id'.
+    - Fetches the matching task from SQLite database.
     - If task is not found, returns HTTP 404 with {"error": "Task not found"}.
     """
-    task = find_task_by_id(id)
-    if not task:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?;", (id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"error": "Task not found"}
         )
-    return task
+        
+    return dict(row)
 
 
 @app.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
