@@ -138,7 +138,7 @@ def update_task(id: int, payload: TaskUpdate):
     """
     Update Task Endpoint (PUT /tasks/{id})
     
-    - Updates title and/or done status of an existing task.
+    - Updates title and/or done status of an existing task in SQLite database.
     - If task does not exist, returns HTTP 404 with {"error": "Task not found"}.
     - If no fields are provided in request body, returns HTTP 400 Bad Request.
     """
@@ -147,10 +147,37 @@ def update_task(id: int, payload: TaskUpdate):
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"error": "Invalid input: At least one field (title or done) must be provided"}
         )
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": "Task not found"}
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if task exists in SQLite database
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?;", (id,))
+    existing_row = cursor.fetchone()
+
+    if existing_row is None:
+        conn.close()
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"error": "Task not found"}
+        )
+
+    # Use updated values if provided, otherwise keep existing values
+    new_title = payload.title if payload.title is not None else existing_row["title"]
+    new_done = payload.done if payload.done is not None else bool(existing_row["done"])
+
+    cursor.execute(
+        "UPDATE tasks SET title = ?, done = ? WHERE id = ?;",
+        (new_title, new_done, id)
     )
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": id,
+        "title": new_title,
+        "done": new_done
+    }
 
 
 @app.delete("/tasks/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -158,11 +185,21 @@ def delete_task(id: int):
     """
     Delete Task Endpoint (DELETE /tasks/{id})
     
-    - Deletes task matching the specified 'id'.
+    - Deletes task matching the specified 'id' from SQLite database.
     - Returns HTTP 204 No Content with empty response body.
     - If task does not exist, returns HTTP 404 with {"error": "Task not found"}.
     """
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": "Task not found"}
-    )
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tasks WHERE id = ?;", (id,))
+    affected_rows = cursor.rowcount
+    conn.commit()
+    conn.close()
+
+    if affected_rows == 0:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"error": "Task not found"}
+        )
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
