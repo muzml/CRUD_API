@@ -1,15 +1,28 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, status, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from app.schemas import TaskCreate, TaskUpdate, TaskResponse
-from app.database import tasks_db, find_task_by_id, get_next_id
+from app.database import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI.
+    Runs database initialization on startup.
+    """
+    init_db()
+    yield
+
 
 # Initialize the FastAPI application instance
 app = FastAPI(
     title="Task Management API",
     description="A lightweight REST API for managing tasks built with FastAPI.",
-    version="1.0"
+    version="1.0",
+    lifespan=lifespan
 )
 
 

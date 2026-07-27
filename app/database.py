@@ -1,32 +1,62 @@
 """
-In-Memory Storage Module
+SQLite Database Module
 
-This module simulates a database using a Python list.
-Since no persistent database (like SQLite or PostgreSQL) is used, 
-all data is stored in RAM and will reset whenever the FastAPI server restarts.
+This module manages the connection to the SQLite database (tasks.db)
+and handles database initialization, table creation, and initial data seeding.
 """
 
-from typing import Optional
+import sqlite3
 
-# In-memory list to store task dictionaries
-# Each task will look like: {"id": 1, "title": "Buy milk", "done": False}
-tasks_db: list[dict] = []
-
-# Counter for auto-generating unique task IDs
-_id_counter: int = 1
+# Constant defining the path to the SQLite database file
+DB_PATH = "tasks.db"
 
 
-def get_next_id() -> int:
-    """Generates the next unique task ID (1, 2, 3...)."""
-    global _id_counter
-    current_id = _id_counter
-    _id_counter += 1
-    return current_id
+def get_db_connection() -> sqlite3.Connection:
+    """
+    Creates and returns a new connection to the SQLite database.
+    
+    Setting row_factory to sqlite3.Row allows accessing query columns
+    by name (e.g., row['title']) like a dictionary rather than tuple indexes.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-def find_task_by_id(task_id: int) -> Optional[dict]:
-    """Helper utility to find a task dictionary by its ID."""
-    for task in tasks_db:
-        if task["id"] == task_id:
-            return task
-    return None
+def init_db() -> None:
+    """
+    Initializes the database:
+    1. Creates the 'tasks' table if it does not exist.
+    2. Seeds 3 default tasks if the table is empty.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 1. Create table statement
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            done BOOLEAN NOT NULL DEFAULT 0
+        );
+    """)
+
+    # 2. Check if the table is empty
+    cursor.execute("SELECT COUNT(*) FROM tasks;")
+    count = cursor.fetchone()[0]
+
+    # 3. Seed initial data only if empty
+    if count == 0:
+        seed_tasks = [
+            ("Buy groceries", False),
+            ("Read SQLite documentation", False),
+            ("Build FastAPI application", True)
+        ]
+        cursor.executemany("""
+            INSERT INTO tasks (title, done)
+            VALUES (?, ?);
+        """, seed_tasks)
+
+    # Commit changes and close the connection
+    conn.commit()
+    conn.close()
