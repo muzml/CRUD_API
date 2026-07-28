@@ -20,3 +20,5 @@ Thumbs.db
 # SQLite database
 *.db
 
+# Environment variables & secrets
+.env
