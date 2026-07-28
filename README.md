@@ -1,14 +1,73 @@
-# 📝 Task Management REST API (Containerized PostgreSQL & Clean Architecture)
+# 📝 Task Management REST API (FlyRank Week 3 Track)
 
 A production-grade, containerized RESTful Task Management API built with **Python 3.11+**, **FastAPI**, **PostgreSQL 15**, and **Docker Compose** as part of the **FlyRank Backend Track (Week 3 Assignment A3: Containerize Your Stack)**.
 
-This project refactors the SQLite CRUD API into a **3-tier Layered Architecture (Routes → Service → Repository → PostgreSQL)** running inside a containerized environment with persistent Docker volumes.
+---
+
+## 🚀 Week 3 Assignment Evolution (Step-by-Step Transition)
+
+This repository demonstrates the step-by-step evolution of a backend service across the three Week 3 assignments:
+
+```
+┌────────────────────────────────┐
+│  Week 3 A1: In-Memory Storage  │  FastAPI base with Python list/dict state
+└───────────────┬────────────────┘
+                │
+                ▼
+┌────────────────────────────────┐
+│  Week 3 A2: SQLite Persistence │  Relational storage with tasks.db & raw SQL
+└───────────────┬────────────────┘
+                │
+                ▼
+┌────────────────────────────────┐  Containerized PostgreSQL + Docker Volumes +
+│  Week 3 A3: Containerized Stack│  3-Tier Layered Architecture (Routes → Service → Repo)
+└────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Step-by-Step Implementation Stages (A3 Migration Log)
+
+### 🔹 Stage 0 – Architecture Planning & Project Review
+* **Goal**: Refactor monolithic SQL calls in route functions into a clean, decoupled 3-tier architecture.
+* **Outcome**: Established contract: `Routes (main.py) → Service (service.py) → Repository (repository.py) → PostgreSQL (Docker)`. Request/response schemas (`schemas.py`) remained 100% unchanged.
+
+### 🔹 Stage 1 – Docker & PostgreSQL Setup
+* **Goal**: Containerize PostgreSQL using Docker and Docker Compose.
+* **Files Created**: `docker-compose.yml`
+* **Key Learning**: Used `postgres:15-alpine` for an ultra-lightweight footprint, mapped container port `5432:5432`, and configured a named Docker volume (`postgres_data`) for persistent disk storage.
+
+### 🔹 Stage 2 – Environment Variables & Security
+* **Goal**: Secure database credentials using environment variables (12-Factor App methodology).
+* **Files Created/Modified**: `.env.example`, `.env`, `.gitignore`
+* **Key Learning**: Hardcoding passwords breaks environment portability and creates security vulnerabilities. Created `.env.example` as a public template and added `.env` to `.gitignore`.
+
+### 🔹 Stage 3 – Database Initialization (`init.sql`)
+* **Goal**: Automate table creation and initial seed data insertion on container startup.
+* **Files Created**: `init.sql`, updated `docker-compose.yml`
+* **Key Learning**: Mounted `init.sql` into PostgreSQL's `/docker-entrypoint-initdb.d/` directory. PostgreSQL executes init scripts automatically on first container boot.
+
+### 🔹 Stage 4 – PostgreSQL Repository & Service Layer
+* **Goal**: Implement the Repository and Service patterns to isolate data access logic.
+* **Files Created/Modified**: `app/repository.py`, `app/service.py`, `app/database.py`, `requirements.txt`
+* **Key Learning**: Defined abstract `TaskRepository` interface and `PostgresTaskRepository` implementation using `psycopg2`. Utilized parameterized queries (`%s`) to prevent SQL injection and transaction commit/rollback logic.
+
+### 🔹 Stage 5 – Connecting FastAPI via Dependency Injection
+* **Goal**: Refactor FastAPI routes to use `TaskService` without modifying HTTP contracts.
+* **Files Modified**: `app/main.py`
+* **Key Learning**: Used FastAPI's `Depends(get_task_service)` for Dependency Injection. Route handlers no longer manage database connections or SQL queries.
+
+### 🔹 Stage 6 – Persistence Testing & Volume Verification
+* **Goal**: Verify data durability across database container restarts.
+* **Outcome**: Executed `docker compose restart db` after inserting tasks via POST requests. Confirmed Docker volume `postgres_data` preserved all task rows intact.
+
+### 🔹 Stage 7 – Documentation & GitHub Sync
+* **Goal**: Document the complete architecture, setup instructions, and step-by-step progress.
+* **Outcome**: Comprehensive `README.md` published and pushed stage-by-stage to GitHub.
 
 ---
 
 ## 🏗️ Architecture Overview
-
-The application strictly separates HTTP concerns, business logic, and database access:
 
 ```
                   ┌─────────────────────────────────────────┐
@@ -46,13 +105,13 @@ The application strictly separates HTTP concerns, business logic, and database a
 
 1. **Decoupled Business Logic**: The Service and Route layers depend on an abstract `TaskRepository` interface. They have zero knowledge of database driver specifics.
 2. **Seamless Database Swapping**: Changing from SQLite to PostgreSQL required **zero changes** to route endpoints or request/response schemas.
-3. **Testability**: In automated test suites, the `PostgresTaskRepository` can be easily swapped for an `InMemoryTaskRepository` without spinning up a live database.
+3. **Testability**: In automated test suites, `PostgresTaskRepository` can be easily swapped for an `InMemoryTaskRepository` without spinning up a live database.
 
 ---
 
 ## 💡 Why PostgreSQL Instead of SQLite?
 
-| Feature | SQLite | PostgreSQL (Production Standard) |
+| Feature | SQLite (Week 3 A2) | PostgreSQL (Week 3 A3 Standard) |
 | :--- | :--- | :--- |
 | **Architecture** | Serverless / File-based | Dedicated Client-Server RDBMS |
 | **Concurrency** | Single-writer lock (limited concurrency) | Multi-Version Concurrency Control (MVCC) |
@@ -63,15 +122,11 @@ The application strictly separates HTTP concerns, business logic, and database a
 
 ## ⚙️ Environment Variables
 
-Configuration is loaded from environment variables using `python-dotenv`.
-
 Copy `.env.example` to create your local `.env` file:
 
 ```bash
 cp .env.example .env
 ```
-
-### Configuration Keys
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
@@ -82,56 +137,18 @@ cp .env.example .env
 | `POSTGRES_PORT` | `5432` | Database server port |
 | `DATABASE_URL` | `postgresql://postgres:postgrespassword@localhost:5432/taskdb` | Standard connection URI |
 
-> ⚠️ **Security Note**: `.env` contains local environment secrets and is ignored by Git via `.gitignore`. Never commit `.env` files to public source control.
-
 ---
 
-## 🐳 Docker & Containerization Setup
+## 🐳 Docker Setup & Running Instructions
 
-The PostgreSQL stack is containerized using `postgres:15-alpine` and managed via `docker-compose.yml`.
-
-### Key Features:
-* **Alpine Linux Base**: Ultra-lightweight Docker image (~5MB footprint).
-* **Automatic Initialization**: Mounts `init.sql` into `/docker-entrypoint-initdb.d/init.sql` to auto-create tables and seed initial data on first launch.
-* **Data Persistence**: Uses a named Docker volume (`postgres_data:/var/lib/postgresql/data`) to preserve database rows across container restarts.
-
----
-
-## 🚀 Quick Start & Running Instructions
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/muzml/CRUD_API.git
-cd CRUD_API
-```
-
-### 2. Start PostgreSQL Container
+### 1. Start PostgreSQL Container
 ```bash
 docker compose up -d
 ```
 
-Verify container status:
+### 2. Install Dependencies & Run Server
 ```bash
-docker compose ps
-```
-
-### 3. Set Up Python Virtual Environment & Install Dependencies
-```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate on Windows (PowerShell)
-.\.venv\Scripts\Activate.ps1
-
-# Activate on macOS/Linux
-source .venv/bin/activate
-
-# Install requirements
 python -m pip install -r requirements.txt
-```
-
-### 4. Run FastAPI Application
-```bash
 python -m uvicorn app.main:app --reload
 ```
 
@@ -156,28 +173,6 @@ Interactive Swagger UI documentation is available at:
 
 ---
 
-## 🧪 Data Persistence Verification
+## 📌 Track Info
 
-To verify that Docker volumes preserve database state across restarts:
-
-1. **Create a new task via POST request**:
-   ```bash
-   curl -X POST "http://127.0.0.1:8000/tasks" \
-        -H "Content-Type: application/json" \
-        -d '{"title": "Verify Docker Volume Persistence"}'
-   ```
-2. **Restart the PostgreSQL database container**:
-   ```bash
-   docker compose restart db
-   ```
-3. **Fetch all tasks**:
-   ```bash
-   curl -X GET "http://127.0.0.1:8000/tasks"
-   ```
-4. **Result**: The newly created task persists safely!
-
----
-
-## 📌 Track Info & Credits
-
-Built as part of **FlyRank Backend Track Week 3 Assignment A3: Containerize Your Stack**.
+Built for **FlyRank Backend Track Week 3 Assignments (A1, A2, & A3: Containerize Your Stack)**.
