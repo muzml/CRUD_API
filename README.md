@@ -10,7 +10,7 @@ This repository demonstrates the step-by-step evolution of a backend service acr
 
 ```
 ┌────────────────────────────────┐
-│  Week 3 A1: In-Memory Storage  │  FastAPI base with Python list/dict state
+│  Week 2 A1: In-Memory Storage  │  FastAPI base with Python list/dict state
 └───────────────┬────────────────┘
                 │
                 ▼
