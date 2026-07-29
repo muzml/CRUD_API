@@ -14,8 +14,9 @@ class AuthService:
     Service layer encapsulating Supabase Authentication workflows.
     """
 
-    def __init__(self):
-        self.supabase = get_supabase_client()
+    @property
+    def supabase(self):
+        return get_supabase_client()
 
     def signup(self, email: str, password: str) -> Dict[str, Any]:
         """

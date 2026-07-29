@@ -67,6 +67,23 @@ This repository demonstrates the step-by-step evolution of a backend service acr
 
 ---
 
+## 🔐 Supabase Authentication Integration (BE-05 Auth Track)
+
+### 🔹 Auth Stage 0 – Supabase Client & Config Setup
+* **Goal**: Install Supabase SDK and set up client singleton module (`app/supabase_client.py`).
+
+### 🔹 Auth Stage 1 – Signup & Login Endpoints
+* **Goal**: Implement `POST /auth/signup` and `POST /auth/login` to authenticate users against Supabase Auth IdP.
+
+### 🔹 Auth Stage 2 – Public & Protected Routes
+* **Goal**: Implement `GET /public/info` (unauthenticated) and `GET /protected/profile` (token validation).
+
+### 🔹 Auth Stage 3 – Centralized Auth Dependency & Task Endpoint Protection
+* **Goal**: Create reusable `get_current_user` dependency with `HTTPBearer` scheme in `app/dependencies.py` and protect all `/tasks` CRUD endpoints.
+* **Files Created/Modified**: `app/dependencies.py`, `app/main.py`, `app/user_routes.py`, `tests/test_stage3_auth.py`
+* **Outcome**: All `/tasks` endpoints now mandate a valid Supabase JWT Bearer token in the `Authorization` header. Requests without valid tokens receive `401 Unauthorized`.
+
+
 ## 🏗️ Architecture Overview
 
 ```
@@ -161,15 +178,20 @@ The API will start at **`http://127.0.0.1:8000`**.
 Interactive Swagger UI documentation is available at:
 👉 **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
 
-| HTTP Method | Endpoint | Description | Expected Status |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/` | API Metadata & Entrypoint | `200 OK` |
-| `GET` | `/health` | Operational Health Check | `200 OK` |
-| `GET` | `/tasks` | Retrieve all tasks from PostgreSQL | `200 OK` |
-| `GET` | `/tasks/{id}` | Retrieve single task by integer `id` | `200 OK` / `404 Not Found` |
-| `POST` | `/tasks` | Create a new task (`done` defaults to `false`) | `201 Created` / `400 Bad Request` |
-| `PUT` | `/tasks/{id}` | Update task title and/or `done` status | `200 OK` / `400` / `404` |
-| `DELETE` | `/tasks/{id}` | Delete task by `id` | `204 No Content` / `404 Not Found` |
+| HTTP Method | Endpoint | Description | Auth Required | Expected Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/` | API Metadata & Entrypoint | ❌ Public | `200 OK` |
+| `GET` | `/health` | Operational Health Check | ❌ Public | `200 OK` |
+| `GET` | `/public/info` | Public API Status Info | ❌ Public | `200 OK` |
+| `POST` | `/auth/signup` | Register new user in Supabase Auth | ❌ Public | `201 Created` / `400` |
+| `POST` | `/auth/login` | Authenticate user & return JWT tokens | ❌ Public | `200 OK` / `400` |
+| `GET` | `/protected/profile` | Retrieve user profile from Supabase JWT | 🔒 Bearer JWT | `200 OK` / `401` |
+| `GET` | `/tasks` | Retrieve all tasks from PostgreSQL | 🔒 Bearer JWT | `200 OK` / `401` |
+| `GET` | `/tasks/{id}` | Retrieve single task by integer `id` | 🔒 Bearer JWT | `200 OK` / `401` / `404` |
+| `POST` | `/tasks` | Create a new task (`done` defaults to `false`) | 🔒 Bearer JWT | `201 Created` / `400` / `401` |
+| `PUT` | `/tasks/{id}` | Update task title and/or `done` status | 🔒 Bearer JWT | `200 OK` / `400` / `401` / `404` |
+| `DELETE` | `/tasks/{id}` | Delete task by `id` | 🔒 Bearer JWT | `204 No Content` / `401` / `404` |
+
 
 ---
 
