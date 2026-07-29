@@ -14,13 +14,39 @@ from app.dependencies import get_current_user
 # Initialize the FastAPI application instance
 app = FastAPI(
     title="Task Management API",
-    description="A lightweight REST API for managing tasks built with FastAPI and PostgreSQL.",
+    description="A production-grade REST API for managing user-scoped tasks built with FastAPI, PostgreSQL, and Supabase Auth.",
     version="1.0"
 )
 
 # Include Routers (BE-05 Auth & User Routes)
 app.include_router(auth_router)
 app.include_router(user_router)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "HTTPBearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter your Supabase JWT access token"
+        }
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+from fastapi.openapi.utils import get_openapi
+app.openapi = custom_openapi
+
 
 
 
