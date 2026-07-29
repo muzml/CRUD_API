@@ -55,3 +55,43 @@ class TaskResponse(BaseModel):
     id: int = Field(..., description="Unique task identifier", example=1)
     title: str = Field(..., description="Task title", example="Buy milk")
     done: bool = Field(..., description="Task completion status", example=False)
+
+
+# ==========================================
+# Authentication Schemas (BE-05 Auth)
+# ==========================================
+
+class AuthCredentials(BaseModel):
+    """
+    Schema for signup and login requests.
+    """
+    email: str = Field(..., description="User email address", example="user@example.com")
+    password: str = Field(..., description="User password (min 6 characters)", example="secret123")
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if not value or "@" not in value or "." not in value:
+            raise ValueError("Invalid email format")
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        return value
+
+
+class AuthResponse(BaseModel):
+    """
+    Schema for authentication response containing JWT tokens.
+    """
+    access_token: str = Field(..., description="Short-lived JWT Access Token")
+    refresh_token: Optional[str] = Field(None, description="Refresh Token for obtaining new access tokens")
+    token_type: str = Field("bearer", description="Token type")
+    expires_in: Optional[int] = Field(None, description="Expiration time in seconds")
+    user_id: str = Field(..., description="Unique Supabase User UUID")
+    email: str = Field(..., description="User email address")
+

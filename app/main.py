@@ -6,6 +6,7 @@ from app.schemas import TaskCreate, TaskUpdate, TaskResponse
 from app.database import get_postgres_connection
 from app.repository import PostgresTaskRepository
 from app.service import TaskService
+from app.auth_routes import router as auth_router
 
 
 # Initialize the FastAPI application instance
@@ -14,6 +15,10 @@ app = FastAPI(
     description="A lightweight REST API for managing tasks built with FastAPI and PostgreSQL.",
     version="1.0"
 )
+
+# Include Auth Router (BE-05 Auth)
+app.include_router(auth_router)
+
 
 
 def get_task_service() -> TaskService:
