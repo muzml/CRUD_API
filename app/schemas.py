@@ -55,6 +55,8 @@ class TaskResponse(BaseModel):
     id: int = Field(..., description="Unique task identifier", example=1)
     title: str = Field(..., description="Task title", example="Buy milk")
     done: bool = Field(..., description="Task completion status", example=False)
+    user_id: Optional[str] = Field(None, description="Task owner user UUID", example="12345678-1234-1234-1234-123456789abc")
+
 
 
 # ==========================================

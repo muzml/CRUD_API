@@ -74,10 +74,11 @@ def get_all_tasks(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get All Tasks Endpoint (GET /tasks) - Protected
+    Get All Tasks Endpoint (GET /tasks) - Protected & User Scoped
     Requires a valid Supabase JWT Bearer token.
     """
-    return service.list_tasks()
+    user_id = current_user.get("id")
+    return service.list_tasks(user_id=user_id)
 
 
 @app.get("/tasks/{id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
@@ -87,10 +88,11 @@ def get_single_task(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get Single Task Endpoint (GET /tasks/{id}) - Protected
+    Get Single Task Endpoint (GET /tasks/{id}) - Protected & User Scoped
     Requires a valid Supabase JWT Bearer token.
     """
-    task = service.get_task(id)
+    user_id = current_user.get("id")
+    task = service.get_task(id, user_id=user_id)
     if task is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -106,10 +108,11 @@ def create_task(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Create Task Endpoint (POST /tasks) - Protected
+    Create Task Endpoint (POST /tasks) - Protected & User Scoped
     Requires a valid Supabase JWT Bearer token.
     """
-    return service.create_task(payload.title)
+    user_id = current_user.get("id")
+    return service.create_task(payload.title, user_id=user_id)
 
 
 @app.put("/tasks/{id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
@@ -120,7 +123,7 @@ def update_task(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Update Task Endpoint (PUT /tasks/{id}) - Protected
+    Update Task Endpoint (PUT /tasks/{id}) - Protected & User Scoped
     Requires a valid Supabase JWT Bearer token.
     """
     if payload.title is None and payload.done is None:
@@ -129,7 +132,8 @@ def update_task(
             content={"error": "Invalid input: At least one field (title or done) must be provided"}
         )
 
-    updated_task = service.update_task(id, payload.title, payload.done)
+    user_id = current_user.get("id")
+    updated_task = service.update_task(id, payload.title, payload.done, user_id=user_id)
     if updated_task is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -146,14 +150,16 @@ def delete_task(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Delete Task Endpoint (DELETE /tasks/{id}) - Protected
+    Delete Task Endpoint (DELETE /tasks/{id}) - Protected & User Scoped
     Requires a valid Supabase JWT Bearer token.
     """
-    success = service.delete_task(id)
+    user_id = current_user.get("id")
+    success = service.delete_task(id, user_id=user_id)
     if not success:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"error": "Task not found"}
         )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 

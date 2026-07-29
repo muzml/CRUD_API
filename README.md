@@ -83,6 +83,12 @@ This repository demonstrates the step-by-step evolution of a backend service acr
 * **Files Created/Modified**: `app/dependencies.py`, `app/main.py`, `app/user_routes.py`, `tests/test_stage3_auth.py`
 * **Outcome**: All `/tasks` endpoints now mandate a valid Supabase JWT Bearer token in the `Authorization` header. Requests without valid tokens receive `401 Unauthorized`.
 
+### 🔹 Auth Stage 4 – User-Scoped Tasks & Ownership Data Isolation (Multi-Tenancy)
+* **Goal**: Bind tasks to authenticated user ID (`user_id`) in PostgreSQL database schema and repository queries for full multi-tenant data isolation.
+* **Files Created/Modified**: `init.sql`, `app/schemas.py`, `app/repository.py`, `app/service.py`, `app/main.py`, `tests/test_stage4_user_scoped_tasks.py`
+* **Outcome**: Users can only view, create, update, or delete their own tasks. Cross-user data access attempts return `404 Not Found`.
+
+
 
 ## 🏗️ Architecture Overview
 
