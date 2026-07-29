@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status, Request, Response, Depends
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.schemas import TaskCreate, TaskUpdate, TaskResponse
 from app.database import get_postgres_connection
@@ -16,6 +17,15 @@ app = FastAPI(
     title="Task Management API",
     description="A production-grade REST API for managing user-scoped tasks built with FastAPI, PostgreSQL, and Supabase Auth.",
     version="1.0"
+)
+
+# Enable CORS for Swagger UI and Web Clients
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include Routers (BE-05 Auth & User Routes)
