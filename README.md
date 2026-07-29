@@ -1,12 +1,19 @@
-# 📝 Task Management REST API (FlyRank Week 3 Track)
+# 📝 Task Management REST API (FlyRank Backend Track)
 
-A production-grade, containerized RESTful Task Management API built with **Python 3.11+**, **FastAPI**, **PostgreSQL 15**, and **Docker Compose** as part of the **FlyRank Backend Track (Week 3 Assignment A3: Containerize Your Stack)**.
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)
+![Docker](https://img.shields.io/badge/Docker%20Compose-2.0+-2496ED.svg)
+![Supabase](https://img.shields.io/badge/Supabase-Auth%20IdP-3ECF8E.svg)
+![Tests](https://img.shields.io/badge/Tests-21%2F21%20Passing-brightgreen.svg)
+
+A production-grade, containerized RESTful Task Management API built with **Python 3.11+**, **FastAPI**, **PostgreSQL 15**, **Docker Compose**, and **Supabase Auth** as part of the **FlyRank Backend Track**.
 
 ---
 
-## 🚀 Week 3 Assignment Evolution (Step-by-Step Transition)
+## 🚀 Week 3 & BE-05 Evolution (Step-by-Step Transition)
 
-This repository demonstrates the step-by-step evolution of a backend service across the three Week 3 assignments:
+This repository demonstrates the step-by-step evolution of a production backend service:
 
 ```
 ┌────────────────────────────────┐
@@ -21,12 +28,17 @@ This repository demonstrates the step-by-step evolution of a backend service acr
                 ▼
 ┌────────────────────────────────┐  Containerized PostgreSQL + Docker Volumes +
 │  Week 3 A3: Containerized Stack│  3-Tier Layered Architecture (Routes → Service → Repo)
+└───────────────┬────────────────┘
+                │
+                ▼
+┌────────────────────────────────┐  Supabase Auth IdP + JWT Bearer Dependencies +
+│  BE-05: Auth & Multi-Tenancy   │  User-Scoped Task Ownership & Session Management
 └────────────────────────────────┘
 ```
 
 ---
 
-## 🛠️ Step-by-Step Implementation Stages (A3 Migration Log)
+## 🛠️ Implementation Stages Log
 
 ### 🔹 Stage 0 – Architecture Planning & Project Review
 * **Goal**: Refactor monolithic SQL calls in route functions into a clean, decoupled 3-tier architecture.
@@ -61,16 +73,12 @@ This repository demonstrates the step-by-step evolution of a backend service acr
 * **Goal**: Verify data durability across database container restarts.
 * **Outcome**: Executed `docker compose restart db` after inserting tasks via POST requests. Confirmed Docker volume `postgres_data` preserved all task rows intact.
 
-### 🔹 Stage 7 – Documentation & GitHub Sync
-* **Goal**: Document the complete architecture, setup instructions, and step-by-step progress.
-* **Outcome**: Comprehensive `README.md` published and pushed stage-by-stage to GitHub.
-
 ---
 
 ## 🔐 Supabase Authentication Integration (BE-05 Auth Track)
 
 ### 🔹 Auth Stage 0 – Supabase Client & Config Setup
-* **Goal**: Install Supabase SDK and set up client singleton module (`app/supabase_client.py`).
+* **Goal**: Install Supabase SDK and set up singleton client module (`app/supabase_client.py`).
 
 ### 🔹 Auth Stage 1 – Signup & Login Endpoints
 * **Goal**: Implement `POST /auth/signup` and `POST /auth/login` to authenticate users against Supabase Auth IdP.
@@ -78,80 +86,86 @@ This repository demonstrates the step-by-step evolution of a backend service acr
 ### 🔹 Auth Stage 2 – Public & Protected Routes
 * **Goal**: Implement `GET /public/info` (unauthenticated) and `GET /protected/profile` (token validation).
 
-### 🔹 Auth Stage 3 – Centralized Auth Dependency & Task Endpoint Protection
+### 🔹 Auth Stage 3 – Centralized Auth Dependency & Task Protection
 * **Goal**: Create reusable `get_current_user` dependency with `HTTPBearer` scheme in `app/dependencies.py` and protect all `/tasks` CRUD endpoints.
-* **Files Created/Modified**: `app/dependencies.py`, `app/main.py`, `app/user_routes.py`, `tests/test_stage3_auth.py`
 * **Outcome**: All `/tasks` endpoints now mandate a valid Supabase JWT Bearer token in the `Authorization` header. Requests without valid tokens receive `401 Unauthorized`.
 
-### 🔹 Auth Stage 4 – User-Scoped Tasks & Ownership Data Isolation (Multi-Tenancy)
+### 🔹 Auth Stage 4 – User-Scoped Tasks & Ownership Data Isolation
 * **Goal**: Bind tasks to authenticated user ID (`user_id`) in PostgreSQL database schema and repository queries for full multi-tenant data isolation.
-* **Files Created/Modified**: `init.sql`, `app/schemas.py`, `app/repository.py`, `app/service.py`, `app/main.py`, `tests/test_stage4_user_scoped_tasks.py`
 * **Outcome**: Users can only view, create, update, or delete their own tasks. Cross-user data access attempts return `404 Not Found`.
 
-### 🔹 Auth Stage 5 – Session Management, Token Refresh & Logout Endpoints
+### 🔹 Auth Stage 5 – Session Management, Token Refresh & Logout
 * **Goal**: Complete authentication lifecycle with `POST /auth/refresh` and `POST /auth/logout` endpoints.
-* **Files Created/Modified**: `app/schemas.py`, `app/auth_service.py`, `app/auth_routes.py`, `tests/test_stage5_auth_session.py`
 * **Outcome**: Clients can seamlessly refresh access tokens using refresh tokens and terminate active sessions on demand.
 
 ### 🔹 Auth Stage 6 – Master Test Suite & OpenAPI Security Configuration
 * **Goal**: Configure OpenAPI Bearer security scheme in `app/main.py` for Swagger UI (`/docs`) and build master test runner `tests/run_all_tests.py`.
-* **Files Created/Modified**: `app/main.py`, `tests/run_all_tests.py`, `README.md`, `walkthrough.md`
-* **Outcome**: Full test suite passing with 100% assertions across all authentication stages. Interactive Swagger documentation fully configured for JWT authorization.
+* **Outcome**: Master test suite passing with 100% assertions across all authentication stages. Interactive Swagger documentation fully configured for JWT authorization.
 
-
-
-
+---
 
 ## 🏗️ Architecture Overview
 
 ```
-                  ┌─────────────────────────────────────────┐
-                  │          HTTP Request (Client)          │
-                  └────────────────────┬────────────────────┘
-                                       │
-                                       ▼
-                  ┌─────────────────────────────────────────┐
-                  │       Routes Layer (app/main.py)        │
-                  │   Handles HTTP parsing & JSON responses │
-                  └────────────────────┬────────────────────┘
-                                       │ (Depends / DI)
-                                       ▼
-                  ┌─────────────────────────────────────────┐
-                  │      Service Layer (app/service.py)     │
-                  │   Business logic & application rules    │
-                  └────────────────────┬────────────────────┘
-                                       │ (TaskRepository ABC)
-                                       ▼
-                  ┌─────────────────────────────────────────┐
-                  │   Repository (app/repository.py)       │
-                  │   PostgresTaskRepository (psycopg2)     │
-                  └────────────────────┬────────────────────┘
-                                       │ (TCP Port 5432)
-                                       ▼
-                  ┌─────────────────────────────────────────┐
-                  │   PostgreSQL Database (Docker)          │
-                  │   Container: task_postgres_db           │
-                  └─────────────────────────────────────────┘
+                   ┌─────────────────────────────────────────┐
+                   │          HTTP Request (Client)          │
+                   └────────────────────┬────────────────────┘
+                                        │
+                                        ▼
+                   ┌─────────────────────────────────────────┐
+                   │       Routes Layer (app/main.py)        │
+                   │   Handles HTTP parsing & JSON responses │
+                   └───────────┬──────────────────┬──────────┘
+                               │                  │
+               (Depends / DI)  ▼                  ▼  (JWT Validation)
+       ┌───────────────────────────────┐  ┌───────────────────────────────┐
+       │ Service Layer (app/service.py)│  │ Supabase Auth (dependencies)  │
+       │ Application Business Rules    │  │ get_current_user (HTTPBearer) │
+       └───────────────┬───────────────┘  └───────────────────────────────┘
+                       │ (TaskRepository ABC)
+                       ▼
+       ┌───────────────────────────────┐
+       │ Repository (app/repository.py)│
+       │ PostgresTaskRepository        │
+       └───────────────┬───────────────┘
+                       │ (TCP Port 5432)
+                       ▼
+       ┌───────────────────────────────┐
+       │ PostgreSQL Database (Docker)  │
+       │ Table: tasks (with user_id)   │
+       └───────────────────────────────┘
 ```
 
 ---
 
-## 🏛️ Why Repository Pattern & Clean Architecture?
+## 📁 Directory Structure
 
-1. **Decoupled Business Logic**: The Service and Route layers depend on an abstract `TaskRepository` interface. They have zero knowledge of database driver specifics.
-2. **Seamless Database Swapping**: Changing from SQLite to PostgreSQL required **zero changes** to route endpoints or request/response schemas.
-3. **Testability**: In automated test suites, `PostgresTaskRepository` can be easily swapped for an `InMemoryTaskRepository` without spinning up a live database.
-
----
-
-## 💡 Why PostgreSQL Instead of SQLite?
-
-| Feature | SQLite (Week 3 A2) | PostgreSQL (Week 3 A3 Standard) |
-| :--- | :--- | :--- |
-| **Architecture** | Serverless / File-based | Dedicated Client-Server RDBMS |
-| **Concurrency** | Single-writer lock (limited concurrency) | Multi-Version Concurrency Control (MVCC) |
-| **Containerization**| Local file binding | Isolated Docker service with volume persistence |
-| **Data Types & Scaling**| Basic type affinities | Strict typing (`SERIAL`, `BOOLEAN`, JSONB, Indexing) |
+```text
+Crud_API/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI Application Entrypoint & OpenAPI config
+│   ├── schemas.py           # Pydantic Request/Response DTO Schemas
+│   ├── database.py          # PostgreSQL connection provider
+│   ├── repository.py        # TaskRepository ABC, PostgresTaskRepository & SQLite
+│   ├── service.py           # TaskService business logic layer
+│   ├── dependencies.py      # get_current_user Auth Dependency (HTTPBearer)
+│   ├── supabase_client.py   # Supabase client singleton initialization
+│   ├── auth_service.py      # AuthService interacting with Supabase Auth IdP
+│   ├── auth_routes.py       # Authentication routes (/auth/signup, /login, /refresh, /logout)
+│   └── user_routes.py       # Public & Protected profile routes (/public/info, /protected/profile)
+├── tests/
+│   ├── __init__.py
+│   ├── test_stage3_auth.py  # Stage 3 Auth dependency & route protection tests
+│   ├── test_stage4_user_scoped_tasks.py  # Stage 4 Multi-tenant data isolation tests
+│   ├── test_stage5_auth_session.py        # Stage 5 Token refresh & logout tests
+│   └── run_all_tests.py    # Master Test Runner executing full suite
+├── docker-compose.yml       # Docker Compose setup for PostgreSQL 15 Alpine
+├── init.sql                 # Automated database initialization & seeding script
+├── requirements.txt         # Python dependencies
+├── .env.example             # Environment configuration template
+└── README.md                # Comprehensive documentation
+```
 
 ---
 
@@ -171,6 +185,8 @@ cp .env.example .env
 | `POSTGRES_HOST` | `localhost` | Database server host |
 | `POSTGRES_PORT` | `5432` | Database server port |
 | `DATABASE_URL` | `postgresql://postgres:postgrespassword@localhost:5432/taskdb` | Standard connection URI |
+| `SUPABASE_URL` | `https://your-project-id.supabase.co` | Supabase Project API URL |
+| `SUPABASE_KEY` | `your-supabase-anon-key` | Supabase Anon Public API Key |
 
 ---
 
@@ -188,6 +204,54 @@ python -m uvicorn app.main:app --reload
 ```
 
 The API will start at **`http://127.0.0.1:8000`**.
+
+---
+
+## 🧪 Running Automated Tests
+
+Run the master test runner script to execute all unit and integration test suites:
+
+```bash
+python tests/run_all_tests.py
+```
+
+### Expected Output:
+```text
+======================================================================
+ [RUNNING FULL SUITE] (STAGES 3, 4, 5) - AUTHENTICATION & TASK API
+======================================================================
+
+--- [STAGE 3] Centralized Auth Dependency & Endpoint Protection ---
+[PASS] Test 1: GET /public/info is publicly accessible (200 OK)
+[PASS] Test 2: GET /protected/profile without token returns 401 Unauthorized
+[PASS] Test 3: GET /tasks without token returns 401 Unauthorized
+[PASS] Test 4: GET /tasks/1 without token returns 401 Unauthorized
+[PASS] Test 5: POST /tasks without token returns 401 Unauthorized
+[PASS] Test 6: PUT /tasks/1 without token returns 401 Unauthorized
+[PASS] Test 7: DELETE /tasks/1 without token returns 401 Unauthorized
+[PASS] Test 8: GET /protected/profile with authorized token returns 200 OK & user data
+
+--- [STAGE 4] User-Scoped Tasks & Ownership Data Isolation ---
+[PASS] Test 1: User A created Task 1 (user_id=user-aaa-111)
+[PASS] Test 2: User B created Task 2 (user_id=user-bbb-222)
+[PASS] Test 3: User A list endpoint returns ONLY User A tasks
+[PASS] Test 4: User B requesting GET /tasks/{User A Task ID} receives 404 Not Found
+[PASS] Test 5: User B requesting PUT /tasks/{User A Task ID} receives 404 Not Found
+[PASS] Test 6: User B requesting DELETE /tasks/{User A Task ID} receives 404 Not Found
+[PASS] Test 7: User A can successfully update own task
+[PASS] Test 8: User A can successfully delete own task
+
+--- [STAGE 5] Session Management, Token Refresh & Logout ---
+[PASS] Test 1: POST /auth/refresh with empty token returns 400 Bad Request
+[PASS] Test 2: POST /auth/refresh with invalid token returns 400 Bad Request
+[PASS] Test 3: POST /auth/logout without token returns 401 Unauthorized
+[PASS] Test 4: POST /auth/logout with valid token returns 200 OK & logout message
+[PASS] Test 5: POST /auth/refresh with valid token returns new AuthResponse
+
+======================================================================
+ [SUCCESS] ALL TEST ASSERTIONS PASSED WITH 100% COVERAGE!
+======================================================================
+```
 
 ---
 
@@ -212,10 +276,8 @@ Interactive Swagger UI documentation is available at:
 | `PUT` | `/tasks/{id}` | Update task title and/or `done` status | 🔒 Bearer JWT | `200 OK` / `400` / `401` / `404` |
 | `DELETE` | `/tasks/{id}` | Delete task by `id` | 🔒 Bearer JWT | `204 No Content` / `401` / `404` |
 
-
-
 ---
 
 ## 📌 Track Info
 
-Built for **FlyRank Backend Track Week 3 Assignments (A1, A2, & A3: Containerize Your Stack)**.
+Built for **FlyRank Backend Track (Week 3 Assignments A1, A2, A3 & BE-05 Supabase Auth Integration)**.
