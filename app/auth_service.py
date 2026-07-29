@@ -55,3 +55,29 @@ class AuthService:
             user_id=response.user.id,
             email=response.user.email
         )
+
+    def refresh_session(self, refresh_token: str) -> AuthResponse:
+        """
+        Exchanges a refresh token for a new access token and refresh token session.
+        """
+        response = self.supabase.auth.refresh_session(refresh_token)
+
+        if not response.session or not response.user:
+            raise ValueError("Invalid or expired refresh token.")
+
+        return AuthResponse(
+            access_token=response.session.access_token,
+            refresh_token=response.session.refresh_token,
+            token_type="bearer",
+            expires_in=response.session.expires_in,
+            user_id=response.user.id,
+            email=response.user.email
+        )
+
+    def logout(self) -> Dict[str, str]:
+        """
+        Terminates the user session on Supabase Auth.
+        """
+        self.supabase.auth.sign_out()
+        return {"message": "Successfully logged out."}
+

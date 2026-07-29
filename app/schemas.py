@@ -97,3 +97,19 @@ class AuthResponse(BaseModel):
     user_id: str = Field(..., description="Unique Supabase User UUID")
     email: str = Field(..., description="User email address")
 
+
+class RefreshTokenRequest(BaseModel):
+    """
+    Schema for token refresh request (POST /auth/refresh).
+    """
+    refresh_token: str = Field(..., description="Supabase refresh token string")
+
+    @field_validator("refresh_token")
+    @classmethod
+    def validate_refresh_token(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Refresh token cannot be empty")
+        return stripped
+
+

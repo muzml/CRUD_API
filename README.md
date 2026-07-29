@@ -88,6 +88,12 @@ This repository demonstrates the step-by-step evolution of a backend service acr
 * **Files Created/Modified**: `init.sql`, `app/schemas.py`, `app/repository.py`, `app/service.py`, `app/main.py`, `tests/test_stage4_user_scoped_tasks.py`
 * **Outcome**: Users can only view, create, update, or delete their own tasks. Cross-user data access attempts return `404 Not Found`.
 
+### 🔹 Auth Stage 5 – Session Management, Token Refresh & Logout Endpoints
+* **Goal**: Complete authentication lifecycle with `POST /auth/refresh` and `POST /auth/logout` endpoints.
+* **Files Created/Modified**: `app/schemas.py`, `app/auth_service.py`, `app/auth_routes.py`, `tests/test_stage5_auth_session.py`
+* **Outcome**: Clients can seamlessly refresh access tokens using refresh tokens and terminate active sessions on demand.
+
+
 
 
 ## 🏗️ Architecture Overview
@@ -191,12 +197,15 @@ Interactive Swagger UI documentation is available at:
 | `GET` | `/public/info` | Public API Status Info | ❌ Public | `200 OK` |
 | `POST` | `/auth/signup` | Register new user in Supabase Auth | ❌ Public | `201 Created` / `400` |
 | `POST` | `/auth/login` | Authenticate user & return JWT tokens | ❌ Public | `200 OK` / `400` |
+| `POST` | `/auth/refresh` | Exchange refresh token for new JWT session | ❌ Public | `200 OK` / `400` |
+| `POST` | `/auth/logout` | Terminate active user session | 🔒 Bearer JWT | `200 OK` / `401` |
 | `GET` | `/protected/profile` | Retrieve user profile from Supabase JWT | 🔒 Bearer JWT | `200 OK` / `401` |
-| `GET` | `/tasks` | Retrieve all tasks from PostgreSQL | 🔒 Bearer JWT | `200 OK` / `401` |
-| `GET` | `/tasks/{id}` | Retrieve single task by integer `id` | 🔒 Bearer JWT | `200 OK` / `401` / `404` |
-| `POST` | `/tasks` | Create a new task (`done` defaults to `false`) | 🔒 Bearer JWT | `201 Created` / `400` / `401` |
+| `GET` | `/tasks` | Retrieve all user-scoped tasks | 🔒 Bearer JWT | `200 OK` / `401` |
+| `GET` | `/tasks/{id}` | Retrieve single user-scoped task by `id` | 🔒 Bearer JWT | `200 OK` / `401` / `404` |
+| `POST` | `/tasks` | Create a new user-scoped task | 🔒 Bearer JWT | `201 Created` / `400` / `401` |
 | `PUT` | `/tasks/{id}` | Update task title and/or `done` status | 🔒 Bearer JWT | `200 OK` / `400` / `401` / `404` |
 | `DELETE` | `/tasks/{id}` | Delete task by `id` | 🔒 Bearer JWT | `204 No Content` / `401` / `404` |
+
 
 
 ---
